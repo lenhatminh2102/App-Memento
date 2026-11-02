@@ -37,6 +37,7 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.1.12297006'
           log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
       - name: Install dependencies
         run: npm ci --include=dev
       - name: TypeScript and booking tests
@@ -76,16 +77,20 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           EXPECTED=$(keytool -exportcert -keystore .keys/memento-release.jks -alias "$KEY_ALIAS" -storepass:env STORE_PASSWORD | sha256sum | cut -d' ' -f1)
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          ACTUAL=$("$APKSIGNER" verify --print-certs build/memento.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --print-certs build/memento.apk > build/signature.txt
+          ACTUAL=$(sed -n 's/.* certificate SHA-256 digest: //p' build/signature.txt | tr -d '\r' | sort -u)
+          echo "Expected release certificate SHA-256: $EXPECTED"
+          echo "APK certificate SHA-256: $ACTUAL"
           test "$EXPECTED" = "$ACTUAL" || { echo 'APK release certificate mismatch'; exit 1; }
       - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request'
+        if: always() && github.event_name != 'pull_request'
         with:
           name: memento-android-${{ github.run_number }}
           path: |
             build/memento.apk
             build/memento.apk.sha256
+            build/signature.txt
           if-no-files-found: error
           retention-days: 30
 
