@@ -1,3 +1,4 @@
+import { verifyMyPassword } from '../lib/verifyPassword';
 import React, { useEffect, useState } from 'react';
 import { Alert, Text } from 'react-native';
 import type { Profile } from '../hooks/useProfile';
@@ -15,5 +16,5 @@ export function PersonalInfo({ profile, userId, done, onboarding = false }: { pr
 }
 export function ChangePassword() {
   const [current, setCurrent] = useState(''); const [password, setPassword] = useState(''); const [confirm, setConfirm] = useState('');
-  return <Page><Title>Đổi mật khẩu</Title><Field label="Mật khẩu hiện tại" value={current} onChangeText={setCurrent} secureTextEntry /><Field label="Mật khẩu mới" value={password} onChangeText={setPassword} secureTextEntry /><Field label="Nhập lại mật khẩu mới" value={confirm} onChangeText={setConfirm} secureTextEntry /><Button title="Đổi mật khẩu" onPress={async () => { if (password.length < 8 || password !== confirm) throw new Error('Mật khẩu mới cần ít nhất 8 ký tự và hai lần nhập phải giống nhau.'); const { data } = await supabase.auth.getUser(); const login = await supabase.auth.signInWithPassword({ email: data.user?.email || '', password: current }); check(login.error?.message); const { error } = await supabase.auth.updateUser({ password }); check(error?.message); setCurrent(''); setPassword(''); setConfirm(''); Alert.alert('Đã đổi mật khẩu'); }} /></Page>;
+  return <Page><Title>Đổi mật khẩu</Title><Field label="Mật khẩu hiện tại" value={current} onChangeText={setCurrent} secureTextEntry /><Field label="Mật khẩu mới" value={password} onChangeText={setPassword} secureTextEntry /><Field label="Nhập lại mật khẩu mới" value={confirm} onChangeText={setConfirm} secureTextEntry /><Button title="Đổi mật khẩu" onPress={async () => { if (password.length < 8 || password !== confirm) throw new Error('Mật khẩu mới cần ít nhất 8 ký tự và hai lần nhập phải giống nhau.'); const verified = await verifyMyPassword(current); if (verified.result !== 'ok') throw new Error(verified.result === 'locked' ? 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.' : 'Mật khẩu hiện tại chưa đúng hoặc chưa xác minh được.'); const { error } = await supabase.auth.updateUser({ password }); check(error?.message); setCurrent(''); setPassword(''); setConfirm(''); Alert.alert('Đã đổi mật khẩu'); }} /></Page>;
 }

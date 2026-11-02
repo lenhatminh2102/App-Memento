@@ -1,4 +1,4 @@
-// One invalid-password request verifies the backend no longer demands CAPTCHA.
+// One invalid-password request verifies unauthenticated clients must provide CAPTCHA.
 // This neither creates an account nor accesses a real user's password or session.
 const fs = require('node:fs');
 if (fs.existsSync('.env')) {
@@ -17,8 +17,7 @@ async function main() {
     signal: AbortSignal.timeout(20000),
   });
   const body = await result.json();
-  if (body.error_code === 'captcha_failed' || body.code === 'captcha_failed') throw new Error('CAPTCHA is still enabled in Supabase. Disable it in Authentication > Attack Protection.');
-  if (body.error_code !== 'invalid_credentials' && body.code !== 'invalid_credentials') throw new Error(`Unexpected auth response: HTTP ${result.status}, ${body.error_code || body.code || 'unknown'}`);
-  console.log('PASS: Supabase validates credentials without requiring CAPTCHA. No account was created.');
+  if (body.error_code !== 'captcha_failed' && body.code !== 'captcha_failed') throw new Error(`Expected CAPTCHA protection, received HTTP ${result.status}, ${body.error_code || body.code || 'unknown'}. Check Supabase CAPTCHA settings.`);
+  console.log('PASS: Supabase rejects login without a CAPTCHA token. Verify a real CAPTCHA interactively to test a complete login. No account was created.');
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

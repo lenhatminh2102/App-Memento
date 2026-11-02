@@ -9,11 +9,11 @@ const code = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/lib
 vm.runInNewContext(code, { exports: mod.exports, module: mod });
 const { authErrorMessage, assertAuthSuccess } = mod.exports;
 test('CAPTCHA rejection is distinguished from incorrect credentials', () => {
-  assert.match(authErrorMessage({ code: 'captcha_failed', message: 'request disallowed' }), /CAPTCHA protection/);
+  assert.match(authErrorMessage({ code: 'captcha_failed', message: 'request disallowed' }), /xác minh lại/);
   assert.match(authErrorMessage({ code: 'invalid_credentials' }), /mật khẩu chưa đúng/);
 });
 test('Auth error codes are preserved when converting an SDK failure to visible text', () => {
-  assert.throws(() => assertAuthSuccess({ code: 'captcha_failed' }), /Supabase/);
+  assert.throws(() => assertAuthSuccess({ code: 'captcha_failed' }), /CAPTCHA/);
   assert.doesNotThrow(() => assertAuthSuccess(null));
 });
 test('Network errors provide a useful retry message', () => {

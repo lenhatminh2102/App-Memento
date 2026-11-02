@@ -51,13 +51,17 @@ APK nằm tại `build/memento.apk`. Nếu build không có cấu hình `MEMENTO
 
 Copy `.env.example` thành `.env` và điền hai cấu hình Supabase public để chạy local. Thêm `google-services.json` ở thư mục gốc để bật FCM Android. Phiên đăng nhập dùng AsyncStorage; ảnh dùng camera/thư viện native; app dùng lại database và RPC hiện có.
 
-## Đăng nhập không dùng CAPTCHA
+## Đăng nhập với hCaptcha
 
-App không nhúng CAPTCHA và không gửi `captchaToken`. Trong đúng dự án Supabase mà `EXPO_PUBLIC_SUPABASE_URL` trỏ tới, mở Authentication → Attack Protection, tắt Enable CAPTCHA protection rồi lưu. Bỏ widget trong code không thay đổi cấu hình CAPTCHA của Supabase hosted.
+App dùng lại site key hCaptcha public của bản gốc. Có thể cấu hình bằng EXPO_PUBLIC_HCAPTCHA_SITE_KEY; không đưa secret key hCaptcha vào app. Supabase phải bật CAPTCHA với nhà cung cấp hCaptcha và secret khớp site key này.
 
-Chạy `npm run test:auth` để kiểm tra backend đã ngừng yêu cầu CAPTCHA. Lệnh chỉ gửi một lần đăng nhập với tài khoản giả `example.invalid`, không tạo tài khoản và không dùng mật khẩu thật. Kết quả `invalid_credentials` là kết quả mong đợi của phép thử này: request đã đến bước kiểm tra thông tin đăng nhập thay vì bị CAPTCHA chặn. Nó không thay thế việc đăng nhập thử bằng tài khoản thật.
+Web dùng widget chính thức @hcaptcha/react-hcaptcha. Bản xem thử tự chuyển localhost:8081 sang memento.localhost:8081 vì hCaptcha không hỗ trợ hostname localhost/127.0.0.1. Tên miền *.localhost vẫn trỏ về máy đang chạy Expo, không cần sửa file hosts.
 
-Lỗi CAPTCHA, sai mật khẩu, email chưa xác nhận và lỗi mạng được hiển thị trực tiếp trên form đăng nhập, kể cả khi mở bản web xem thử. Không đặt khóa quản trị hay service-role key trong app để né CAPTCHA.
+Android/iOS dùng SDK @hcaptcha/react-native-hcaptcha trong cửa sổ xác minh riêng. WebView chỉ phục vụ thử thách CAPTCHA; giao diện ứng dụng vẫn dùng React Native.
+
+Đăng nhập, đăng ký, quên mật khẩu, gửi lại mã và gửi OTP cho thay đổi tài khoản đều truyền options.captchaToken. Token chỉ dùng cho một request và được reset sau mỗi lần thử. OTP verify không tái sử dụng token cũ. Kiểm tra mật khẩu của người đã đăng nhập dùng RPC verify_my_password như bản gốc.
+
+Chạy npm run test:auth để kiểm tra Supabase đang chặn request không có CAPTCHA. Đây không phải bài test đăng nhập bằng tài khoản thật; người dùng cần tự hoàn thành thử thách và nhập thông tin đăng nhập để nghiệm thu toàn bộ luồng.
 
 ## Trạng thái chuyển đổi
 
