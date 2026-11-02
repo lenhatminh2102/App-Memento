@@ -23,7 +23,9 @@ const sdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || (process
 if (!sdk || !fs.existsSync(sdk)) throw new Error('Không tìm thấy Android SDK. Cài Android Studio và đặt ANDROID_HOME.');
 fs.writeFileSync(path.join(root, 'android', 'local.properties'), `sdk.dir=${sdk.replaceAll('\\', '/')}\n`);
 // Release JS is embedded into the APK and does not need Metro or a localhost server.
-run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', ['assembleRelease'], path.join(root, 'android'));
+const architectures = process.env.MEMENTO_ANDROID_ARCHITECTURES || 'arm64-v8a,armeabi-v7a';
+if (!/^(arm64-v8a|armeabi-v7a|x86_64|x86)(,(arm64-v8a|armeabi-v7a|x86_64|x86))*$/.test(architectures)) throw new Error('Invalid Android architectures');
+run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', ['assembleRelease', `-PreactNativeArchitectures=${architectures}`, '--no-daemon', '--max-workers=2'], path.join(root, 'android'));
 const source = path.join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
 fs.mkdirSync(path.join(root, 'build'), { recursive: true });
 fs.copyFileSync(source, path.join(root, 'build', 'memento.apk'));
