@@ -1,9 +1,7 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 let currentToken: string | null = null;
-Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }) });
 async function saveToken(token: string) {
   currentToken = token;
   const { error } = await supabase.rpc('register_device_token', { p_token: token, p_platform: Platform.OS });
@@ -11,6 +9,8 @@ async function saveToken(token: string) {
 }
 export async function registerPush(onTap: () => void) {
   if (Platform.OS !== 'android') return () => {};
+  const Notifications = await import('expo-notifications');
+  Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }) });
   await Notifications.setNotificationChannelAsync('default', { name: 'Memento', importance: Notifications.AndroidImportance.HIGH });
   const permission = await Notifications.requestPermissionsAsync();
   if (permission.status !== 'granted') return () => {};

@@ -51,6 +51,14 @@ APK nằm tại `build/memento.apk`. Nếu build không có cấu hình `MEMENTO
 
 Copy `.env.example` thành `.env` và điền hai cấu hình Supabase public để chạy local. Thêm `google-services.json` ở thư mục gốc để bật FCM Android. Phiên đăng nhập dùng AsyncStorage; ảnh dùng camera/thư viện native; app dùng lại database và RPC hiện có.
 
+## Đăng nhập không dùng CAPTCHA
+
+App không nhúng CAPTCHA và không gửi `captchaToken`. Trong đúng dự án Supabase mà `EXPO_PUBLIC_SUPABASE_URL` trỏ tới, mở Authentication → Attack Protection, tắt Enable CAPTCHA protection rồi lưu. Bỏ widget trong code không thay đổi cấu hình CAPTCHA của Supabase hosted.
+
+Chạy `npm run test:auth` để kiểm tra backend đã ngừng yêu cầu CAPTCHA. Lệnh chỉ gửi một lần đăng nhập với tài khoản giả `example.invalid`, không tạo tài khoản và không dùng mật khẩu thật. Kết quả `invalid_credentials` là kết quả mong đợi của phép thử này: request đã đến bước kiểm tra thông tin đăng nhập thay vì bị CAPTCHA chặn. Nó không thay thế việc đăng nhập thử bằng tài khoản thật.
+
+Lỗi CAPTCHA, sai mật khẩu, email chưa xác nhận và lỗi mạng được hiển thị trực tiếp trên form đăng nhập, kể cả khi mở bản web xem thử. Không đặt khóa quản trị hay service-role key trong app để né CAPTCHA.
+
 ## Trạng thái chuyển đổi
 
 Đã có các luồng native chính: đăng nhập/đăng ký/OTP, onboarding, khám phá, hồ sơ/portfolio/đánh giá, đặt lịch, thanh toán QR, bàn giao ảnh, chỉnh sửa ảnh, hủy song phương/hoàn tiền, chat realtime, thông báo, yêu cầu tìm nhiếp ảnh gia và đề nghị nhận đơn, hồ sơ cá nhân, đổi email/mật khẩu, xóa tài khoản, đăng ký/cập nhật và duyệt nhiếp ảnh gia.
