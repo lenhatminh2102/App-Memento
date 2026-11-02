@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "check": "tsc --noEmit",
-    "test": "node --test scripts/booking.test.cjs",
+    "test": "node --test scripts/*.test.cjs",
     "bundle:android": "expo export --platform android",
     "apk": "node scripts/build-apk.cjs"
   },
