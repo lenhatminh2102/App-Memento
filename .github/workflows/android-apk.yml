@@ -44,6 +44,8 @@ jobs:
         run: |
           npm run check
           npm test
+      - name: Validate Android JavaScript bundle
+        run: npm run bundle:android
       - name: Restore app configuration and signing key
         if: github.event_name != 'pull_request'
         env:
