@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Memento",
+    "slug": "memento-mobile",
+    "version": "2.0.0",
+    "scheme": "memento",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["android", "ios"],
+    "android": { "package": "vn.memento.app", "versionCode": 8, "softwareKeyboardLayoutMode": "resize" },
+    "ios": { "bundleIdentifier": "vn.memento.app", "supportsTablet": false },
+    "plugins": [["expo-image-picker", { "photosPermission": "Cho phép Memento chọn ảnh hồ sơ và ảnh chụp.", "cameraPermission": "Cho phép Memento chụp ảnh hồ sơ.", "microphonePermission": false }]]
+  }
+}

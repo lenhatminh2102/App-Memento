@@ -54,3 +54,20 @@ Thumbs.db
 # ─── Misc ───────────────────────────────────────────────────────
 *.log
 .cache/
+
+# React Native generated files and local build credentials
+/android/
+/ios/
+/.expo/
+/.tmp/
+/.build-cache/
+/.ci-local/
+/.keys/
+/.legacy-android-local/
+/google-services.json
+*.apk
+*.aab
+legacy/web/android/local.properties
+legacy/web/android/.gradle/
+legacy/web/android/build/
+legacy/web/android/app/build/
