@@ -1,11 +1,11 @@
 {
   "name": "memento-mobile",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
   "main": "index.ts",
   "scripts": {
-    "start": "expo start --go",
-    "start:dev": "expo start --dev-client",
+    "start": "expo start --dev-client",
+    "start:dev": "npm start",
     "web": "expo start --web",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -13,7 +13,13 @@
     "test": "node --test scripts/*.test.cjs",
     "bundle:android": "expo export --platform android",
     "apk": "node scripts/build-apk.cjs",
-    "test:auth": "node scripts/check-auth.cjs"
+    "test:auth": "node scripts/check-auth.cjs",
+    "format": "prettier --write src scripts plugins config .github app.config.js app.json index.ts tsconfig.json package.json README.md .prettierrc.json",
+    "format:check": "prettier --check src scripts plugins config .github app.config.js app.json index.ts tsconfig.json package.json README.md .prettierrc.json",
+    "validate": "npm run check && npm run format:check && npm test",
+    "android:sdk": "node scripts/install-android-sdk.cjs",
+    "apk:verify": "node scripts/verify-apk.cjs",
+    "start:go": "expo start --go"
   },
   "dependencies": {
     "@expo/metro-runtime": "~58.0.16",
@@ -39,6 +45,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "prettier": "^3.8.2",
     "typescript": "~6.0.3"
   }
 }

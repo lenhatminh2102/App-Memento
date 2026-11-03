@@ -29,23 +29,27 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Install dependencies
+        run: npm ci --include=dev
+      - name: Validate source
+        run: npm run validate
+      - name: Validate Android JavaScript bundle
+        run: npm run bundle:android
       - uses: actions/setup-java@v4
+        if: github.event_name != 'pull_request'
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        if: github.event_name != 'pull_request'
         with:
-          packages: 'platform-tools platforms;android-36 platforms;android-37.0 build-tools;36.0.0 build-tools;37.0.0 ndk;27.1.12297006'
+          packages: 'platform-tools'
           log-accepted-android-sdk-licenses: false
+      - name: Install Android SDK from project configuration
+        if: github.event_name != 'pull_request'
+        run: npm run android:sdk
       - uses: gradle/actions/setup-gradle@v4
-      - name: Install dependencies
-        run: npm ci --include=dev
-      - name: TypeScript and booking tests
-        run: |
-          npm run check
-          npm test
-      - name: Validate Android JavaScript bundle
-        run: npm run bundle:android
+        if: github.event_name != 'pull_request'
       - name: Restore app configuration and signing key
         if: github.event_name != 'pull_request'
         env:
@@ -60,7 +64,7 @@ jobs:
           fs.mkdirSync('.keys', { recursive: true });
           fs.writeFileSync('.keys/memento-release.jks', Buffer.from(process.env.KEYSTORE_BASE64, 'base64'));
           NODE
-      - name: Build signed standalone APK
+      - name: Build and verify signed standalone APK
         if: github.event_name != 'pull_request'
         env:
           MEMENTO_KEYSTORE_FILE: ${{ github.workspace }}/.keys/memento-release.jks
@@ -68,25 +72,11 @@ jobs:
           MEMENTO_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           MEMENTO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           CI: '1'
-        run: npm run apk
-      - name: APK checksum
-        if: github.event_name != 'pull_request'
-        run: cd build && sha256sum memento.apk > memento.apk.sha256
-      - name: Verify APK release certificate
-        if: github.event_name != 'pull_request'
-        env:
-          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          EXPECTED=$(keytool -exportcert -keystore .keys/memento-release.jks -alias "$KEY_ALIAS" -storepass:env STORE_PASSWORD | sha256sum | cut -d' ' -f1)
-          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          "$APKSIGNER" verify --print-certs build/memento.apk > build/signature.txt
-          ACTUAL=$(sed -n 's/.* certificate SHA-256 digest: //p' build/signature.txt | tr -d '\r' | sort -u)
-          echo "Expected release certificate SHA-256: $EXPECTED"
-          echo "APK certificate SHA-256: $ACTUAL"
-          test "$EXPECTED" = "$ACTUAL" || { echo 'APK release certificate mismatch'; exit 1; }
+          npm run apk
+          npm run apk:verify
       - uses: actions/upload-artifact@v4
-        if: always() && github.event_name != 'pull_request'
+        if: always() && github.event_name != 'pull_request' && hashFiles('build/memento.apk') != ''
         with:
           name: memento-android-${{ github.run_number }}
           path: |

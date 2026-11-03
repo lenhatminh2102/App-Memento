@@ -1,9 +1,9 @@
-import { supabase } from "./supabase";
+import { supabase } from './supabase';
 
 /* ───────────── Ghim hồ sơ (lưu trên server, mỗi tài khoản 1 lần/photographer) ───────────── */
 
 export async function fetchPins(): Promise<number[]> {
-  const { data, error } = await supabase.from("pinned_photographers").select("photographer_id");
+  const { data, error } = await supabase.from('pinned_photographers').select('photographer_id');
   if (error || !data) return [];
   return data.map((r) => Number((r as { photographer_id: number | string }).photographer_id));
 }
@@ -12,20 +12,23 @@ export async function fetchPins(): Promise<number[]> {
 export async function setPinned(photographerId: number, pinned: boolean): Promise<string | null> {
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id;
-  if (!uid) return "Bạn cần đăng nhập để ghim";
+  if (!uid) return 'Bạn cần đăng nhập để ghim';
   const pid = Number(photographerId);
-  if (!Number.isFinite(pid)) return "ID nhiếp ảnh gia không hợp lệ";
+  if (!Number.isFinite(pid)) return 'ID nhiếp ảnh gia không hợp lệ';
   if (pinned) {
     const { error } = await supabase
-      .from("pinned_photographers")
-      .upsert({ user_id: uid, photographer_id: pid }, { onConflict: "user_id,photographer_id", ignoreDuplicates: true });
+      .from('pinned_photographers')
+      .upsert(
+        { user_id: uid, photographer_id: pid },
+        { onConflict: 'user_id,photographer_id', ignoreDuplicates: true },
+      );
     return error ? error.message : null;
   }
   const { error } = await supabase
-    .from("pinned_photographers")
+    .from('pinned_photographers')
     .delete()
-    .eq("user_id", uid)
-    .eq("photographer_id", pid);
+    .eq('user_id', uid)
+    .eq('photographer_id', pid);
   return error ? error.message : null;
 }
 
@@ -47,19 +50,21 @@ export type ReviewRow = {
 export type ReviewSummary = {
   count: number;
   average: number;
-  breakdown: Record<"1" | "2" | "3" | "4" | "5", number>;
+  breakdown: Record<'1' | '2' | '3' | '4' | '5', number>;
   my_review: { id: string; rating: number; comment: string; hidden: boolean } | null;
 };
 
 export const EMPTY_SUMMARY: ReviewSummary = {
   count: 0,
   average: 0,
-  breakdown: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+  breakdown: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
   my_review: null,
 };
 
 export async function fetchReviewSummary(photographerId: number): Promise<ReviewSummary> {
-  const { data, error } = await supabase.rpc("get_review_summary", { p_photographer_id: photographerId });
+  const { data, error } = await supabase.rpc('get_review_summary', {
+    p_photographer_id: photographerId,
+  });
   if (error || !data) return EMPTY_SUMMARY;
   const d = data as Partial<ReviewSummary>;
   return {
@@ -70,19 +75,27 @@ export async function fetchReviewSummary(photographerId: number): Promise<Review
   };
 }
 
-export async function fetchReviews(photographerId: number, limit = 10, offset = 0): Promise<ReviewRow[]> {
-  const { data, error } = await supabase.rpc("list_photographer_reviews", {
+export async function fetchReviews(
+  photographerId: number,
+  limit = 10,
+  offset = 0,
+): Promise<ReviewRow[]> {
+  const { data, error } = await supabase.rpc('list_photographer_reviews', {
     p_photographer_id: photographerId,
     p_limit: limit,
     p_offset: offset,
   });
   if (error || !data) return [];
-  const arr = Array.isArray(data) ? data : (typeof data === "object" ? data : []);
+  const arr = Array.isArray(data) ? data : typeof data === 'object' ? data : [];
   return (arr as ReviewRow[]) || [];
 }
 
-export async function submitReview(photographerId: number, rating: number, comment: string): Promise<string | null> {
-  const { error } = await supabase.rpc("submit_review", {
+export async function submitReview(
+  photographerId: number,
+  rating: number,
+  comment: string,
+): Promise<string | null> {
+  const { error } = await supabase.rpc('submit_review', {
     p_photographer_id: photographerId,
     p_rating: rating,
     p_comment: comment,
@@ -91,13 +104,17 @@ export async function submitReview(photographerId: number, rating: number, comme
 }
 
 export async function deleteMyReview(photographerId: number): Promise<string | null> {
-  const { error } = await supabase.rpc("delete_my_review", { p_photographer_id: photographerId });
+  const { error } = await supabase.rpc('delete_my_review', { p_photographer_id: photographerId });
   return error ? error.message : null;
 }
 
 /** Photographer báo cáo bình luận trên hồ sơ của mình */
-export async function reportReview(reviewId: string, reason: string, description: string): Promise<string | null> {
-  const { error } = await supabase.rpc("report_review", {
+export async function reportReview(
+  reviewId: string,
+  reason: string,
+  description: string,
+): Promise<string | null> {
+  const { error } = await supabase.rpc('report_review', {
     p_review_id: reviewId,
     p_reason: reason,
     p_description: description,
@@ -119,7 +136,7 @@ export type UserCard = {
 };
 
 export async function fetchUserCard(userId: string): Promise<UserCard | null> {
-  const { data, error } = await supabase.rpc("get_public_user_card", { p_user_id: userId });
+  const { data, error } = await supabase.rpc('get_public_user_card', { p_user_id: userId });
   if (error || !data) return null;
   const d = data as Record<string, unknown>;
   return {
@@ -139,16 +156,16 @@ export async function fetchUserCard(userId: string): Promise<UserCard | null> {
 export async function submitProfileReport(args: {
   reportedUserId: string;
   reportedName: string | null;
-  subject: "profile" | "photo";
+  subject: 'profile' | 'photo';
   reason: string;
   description: string;
   photoUrl?: string;
 }): Promise<string | null> {
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id;
-  if (!uid) return "Bạn cần đăng nhập để báo cáo";
-  if (uid === args.reportedUserId) return "Bạn không thể báo cáo chính mình";
-  const { error } = await supabase.from("profile_reports").insert({
+  if (!uid) return 'Bạn cần đăng nhập để báo cáo';
+  if (uid === args.reportedUserId) return 'Bạn không thể báo cáo chính mình';
+  const { error } = await supabase.from('profile_reports').insert({
     reporter_id: uid,
     reported_user_id: args.reportedUserId,
     reported_name: args.reportedName,
@@ -160,7 +177,6 @@ export async function submitProfileReport(args: {
   return error ? error.message : null;
 }
 
-
 /* ───────────── Tim ảnh portfolio (online) ───────────── */
 
 export type PhotoLikesState = {
@@ -169,7 +185,9 @@ export type PhotoLikesState = {
 };
 
 export async function fetchPhotoLikes(photographerId: number): Promise<PhotoLikesState> {
-  const { data, error } = await supabase.rpc("get_photo_likes", { p_photographer_id: photographerId });
+  const { data, error } = await supabase.rpc('get_photo_likes', {
+    p_photographer_id: photographerId,
+  });
   if (error || !data) return { counts: {}, likedUrls: new Set() };
   const d = data as { counts?: Record<string, number>; liked_urls?: string[] };
   return {
@@ -181,9 +199,9 @@ export async function fetchPhotoLikes(photographerId: number): Promise<PhotoLike
 /** Toggle like 1 ảnh. Trả về { liked, count } hoặc error string */
 export async function togglePhotoLike(
   photographerId: number,
-  photoUrl: string
+  photoUrl: string,
 ): Promise<{ liked: boolean; count: number } | { error: string }> {
-  const { data, error } = await supabase.rpc("toggle_photo_like", {
+  const { data, error } = await supabase.rpc('toggle_photo_like', {
     p_photographer_id: photographerId,
     p_photo_url: photoUrl,
   });

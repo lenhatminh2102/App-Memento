@@ -1,0 +1,15 @@
+node_modules
+android
+ios
+legacy
+sql
+email-template
+guidelines
+dist
+build
+.expo
+.tmp
+.ci-local
+.legacy-android-local
+package-lock.json
+google-services.json

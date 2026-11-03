@@ -1,8 +1,8 @@
-import { supabase } from "./supabase";
-import type { BookingRow } from "./bookings";
-import { DELETED_USER_NAME, fetchDeletedUserIds, isDeletedUserName } from "./deletedAccount";
+import { supabase } from './supabase';
+import type { BookingRow } from './bookings';
+import { DELETED_USER_NAME, fetchDeletedUserIds, isDeletedUserName } from './deletedAccount';
 
-export type ConversationKind = "booking" | "admin";
+export type ConversationKind = 'booking' | 'admin';
 
 /** Một dòng trong danh sách "Tin nhắn" */
 export type ConversationItem = {
@@ -51,7 +51,7 @@ const PAGE_SIZE = 50;
  * Đơn đã hoàn tất (completed) vẫn nhắn tiếp bình thường.
  * Phải khớp với hàm chat_pair_can_send trong 032_chat_realtime.sql.
  */
-export const CHAT_BLOCKED_BOOKING_STATUSES: readonly string[] = ["rejected", "cancelled"];
+export const CHAT_BLOCKED_BOOKING_STATUSES: readonly string[] = ['rejected', 'cancelled'];
 
 export function bookingAllowsChat(status: string): boolean {
   return !CHAT_BLOCKED_BOOKING_STATUSES.includes(status);
@@ -69,15 +69,19 @@ export function conversationToTarget(c: ConversationItem): ChatTarget {
 }
 
 /** Dựng ChatTarget từ một đơn (nút "Chat" trong Lịch hẹn). */
-export function bookingToChatTarget(b: BookingRow, userId: string | null, conversationId: string): ChatTarget {
+export function bookingToChatTarget(
+  b: BookingRow,
+  userId: string | null,
+  conversationId: string,
+): ChatTarget {
   const iAmClient = userId === b.client_id;
-  const name = (iAmClient ? b.photographer_name : b.client_name) || "Người dùng";
+  const name = (iAmClient ? b.photographer_name : b.client_name) || 'Người dùng';
   const deleted = isDeletedUserName(name);
   return {
     id: conversationId,
-    kind: "booking",
+    kind: 'booking',
     partnerName: deleted ? DELETED_USER_NAME : name,
-    partnerAvatar: deleted ? null : (iAmClient ? b.photographer_avatar : b.client_avatar) ?? null,
+    partnerAvatar: deleted ? null : ((iAmClient ? b.photographer_avatar : b.client_avatar) ?? null),
     canSend: !deleted && bookingAllowsChat(b.status),
     partnerDeleted: deleted,
   };
@@ -85,18 +89,31 @@ export function bookingToChatTarget(b: BookingRow, userId: string | null, conver
 
 /* ───────────────────────── Gọi server ───────────────────────── */
 
-export async function fetchConversations(): Promise<{ items: ConversationItem[]; error: string | null }> {
-  const { data, error } = await supabase.rpc("list_my_conversations");
+export async function fetchConversations(): Promise<{
+  items: ConversationItem[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('list_my_conversations');
   if (error) return { items: [], error: error.message };
   const items = Array.isArray(data) ? (data as ConversationItem[]) : [];
 
   // Đối tác đã xóa tài khoản: nhận ra qua tên "Người dùng đã bị xóa" hoặc hỏi server (deleted_user_ids)
-  const gone = await fetchDeletedUserIds(items.filter((c) => c.kind === "booking").map((c) => c.partner_id));
+  const gone = await fetchDeletedUserIds(
+    items.filter((c) => c.kind === 'booking').map((c) => c.partner_id),
+  );
   return {
     items: items.map((c) => {
-      const deleted = c.kind === "booking" && (isDeletedUserName(c.partner_name) || (!!c.partner_id && gone.has(c.partner_id)));
+      const deleted =
+        c.kind === 'booking' &&
+        (isDeletedUserName(c.partner_name) || (!!c.partner_id && gone.has(c.partner_id)));
       return deleted
-        ? { ...c, partner_deleted: true, partner_name: DELETED_USER_NAME, partner_avatar: null, can_send: false }
+        ? {
+            ...c,
+            partner_deleted: true,
+            partner_name: DELETED_USER_NAME,
+            partner_avatar: null,
+            can_send: false,
+          }
         : c;
     }),
     error: null,
@@ -104,9 +121,11 @@ export async function fetchConversations(): Promise<{ items: ConversationItem[];
 }
 
 /** Mở (hoặc lấy) cuộc trò chuyện của một đơn. Chỉ 2 bên của đơn mới mở được. */
-export async function openBookingChat(bookingId: string): Promise<{ id: string | null; error: string | null }> {
-  const { data, error } = await supabase.rpc("open_booking_chat", { p_booking_id: bookingId });
-  if (error || !data) return { id: null, error: error?.message || "Chưa mở được cuộc trò chuyện" };
+export async function openBookingChat(
+  bookingId: string,
+): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('open_booking_chat', { p_booking_id: bookingId });
+  if (error || !data) return { id: null, error: error?.message || 'Chưa mở được cuộc trò chuyện' };
   return { id: data as string, error: null };
 }
 
@@ -116,14 +135,15 @@ export async function fetchMessages(
   before?: string,
 ): Promise<{ messages: ChatMessage[]; hasMore: boolean; error: string | null }> {
   let q = supabase
-    .from("messages")
-    .select("*")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: false })
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
     .limit(PAGE_SIZE);
-  if (before) q = q.lt("created_at", before);
+  if (before) q = q.lt('created_at', before);
   const { data, error } = await q;
-  if (error || !data) return { messages: [], hasMore: false, error: error?.message || "Không tải được tin nhắn" };
+  if (error || !data)
+    return { messages: [], hasMore: false, error: error?.message || 'Không tải được tin nhắn' };
   const rows = (data as ChatMessage[]).slice().reverse();
   return { messages: rows, hasMore: data.length === PAGE_SIZE, error: null };
 }
@@ -132,21 +152,24 @@ export async function sendMessage(
   conversationId: string,
   body: string,
 ): Promise<{ message: ChatMessage | null; error: string | null }> {
-  const { data, error } = await supabase.rpc("send_message", {
+  const { data, error } = await supabase.rpc('send_message', {
     p_conversation_id: conversationId,
     p_body: body,
   });
-  if (error || !data) return { message: null, error: error?.message || "Chưa gửi được tin nhắn" };
+  if (error || !data) return { message: null, error: error?.message || 'Chưa gửi được tin nhắn' };
   return { message: data as ChatMessage, error: null };
 }
 
 export async function markConversationRead(conversationId: string): Promise<void> {
-  await supabase.rpc("mark_conversation_read", { p_conversation_id: conversationId });
+  await supabase.rpc('mark_conversation_read', { p_conversation_id: conversationId });
 }
 
 /** Trả về chuỗi lỗi, hoặc null nếu gửi báo cáo thành công. */
-export async function reportConversation(conversationId: string, description: string): Promise<string | null> {
-  const { error } = await supabase.rpc("report_conversation", {
+export async function reportConversation(
+  conversationId: string,
+  description: string,
+): Promise<string | null> {
+  const { error } = await supabase.rpc('report_conversation', {
     p_conversation_id: conversationId,
     p_description: description,
   });
@@ -156,10 +179,10 @@ export async function reportConversation(conversationId: string, description: st
 /** Tổng tin chưa đọc. Trả về null khi lỗi mạng (để UI giữ nguyên số cũ thay vì nhảy về 0). */
 export async function fetchUnreadTotal(userId: string): Promise<number | null> {
   const { count, error } = await supabase
-    .from("messages")
-    .select("id", { count: "exact", head: true })
-    .eq("recipient_id", userId)
-    .is("read_at", null);
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('recipient_id', userId)
+    .is('read_at', null);
   if (error) return null;
   return count ?? 0;
 }
@@ -184,17 +207,27 @@ export function subscribeConversation(
   const ch = supabase
     .channel(`chat:${conversationId}:${++channelSeq}`)
     .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
       (p) => handlers.onInsert(p.new as ChatMessage),
     )
     .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
       (p) => handlers.onUpdate(p.new as ChatMessage),
     )
     .subscribe((status) => {
-      if (status === "SUBSCRIBED") {
+      if (status === 'SUBSCRIBED') {
         if (!first) handlers.onResync();
         first = false;
       }
@@ -220,20 +253,20 @@ export function subscribeInbox(
   const ch = supabase
     .channel(`inbox:${userId}:${++channelSeq}`)
     .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages", filter: `recipient_id=eq.${userId}` },
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${userId}` },
       (p) => {
         handlers.onIncoming(p.new as ChatMessage);
         handlers.onChange();
       },
     )
     .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "messages", filter: `recipient_id=eq.${userId}` },
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'messages', filter: `recipient_id=eq.${userId}` },
       () => handlers.onChange(),
     )
     .subscribe((status) => {
-      if (status === "SUBSCRIBED") {
+      if (status === 'SUBSCRIBED') {
         if (!first) handlers.onChange();
         first = false;
       }
@@ -261,8 +294,8 @@ export function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): Cha
   });
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
-const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const pad = (n: number) => String(n).padStart(2, '0');
+const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -284,8 +317,8 @@ export function dayKey(iso: string): string {
 export function formatDayLabel(iso: string): string {
   const d = new Date(iso);
   const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
-  if (diffDays === 0) return "Hôm nay";
-  if (diffDays === 1) return "Hôm qua";
+  if (diffDays === 0) return 'Hôm nay';
+  if (diffDays === 1) return 'Hôm qua';
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
@@ -294,7 +327,7 @@ export function formatListTime(iso: string): string {
   const d = new Date(iso);
   const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
   if (diffDays <= 0) return formatClock(iso);
-  if (diffDays === 1) return "Hôm qua";
+  if (diffDays === 1) return 'Hôm qua';
   if (diffDays < 7) return WEEKDAYS[d.getDay()];
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }

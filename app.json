@@ -2,18 +2,14 @@
   "expo": {
     "name": "Memento",
     "slug": "memento-mobile",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "scheme": "memento",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "platforms": [
-      "android",
-      "ios",
-      "web"
-    ],
+    "platforms": ["android", "ios", "web"],
     "android": {
       "package": "vn.memento.app",
-      "versionCode": 10,
+      "versionCode": 11,
       "softwareKeyboardLayoutMode": "resize"
     },
     "ios": {

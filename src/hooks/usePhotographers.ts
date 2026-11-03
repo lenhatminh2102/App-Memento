@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
-import type { Photographer } from "../types";
-import { asBoards, asPinUrls } from "../lib/normalizeBoards";
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import type { Photographer } from '../types';
+import { asBoards, asPinUrls } from '../lib/normalizeBoards';
 
 function normalizePhotographer(row: any): Photographer {
   const portfolio = Array.isArray(row.portfolio) ? row.portfolio : [];
@@ -11,7 +11,7 @@ function normalizePhotographer(row: any): Photographer {
   const rental_pins = asPinUrls(row.rental_pins);
 
   let price_groups = row.price_groups;
-  if (typeof price_groups === "string") {
+  if (typeof price_groups === 'string') {
     try {
       price_groups = JSON.parse(price_groups);
     } catch {
@@ -26,7 +26,7 @@ function normalizePhotographer(row: any): Photographer {
     portfolio,
     boards,
     standalone_pins: standalone_pins.length > 0 ? standalone_pins : portfolio,
-    pin_likes: row.pin_likes && typeof row.pin_likes === "object" ? row.pin_likes : {},
+    pin_likes: row.pin_likes && typeof row.pin_likes === 'object' ? row.pin_likes : {},
     price_groups,
     skill_makeup: !!row.skill_makeup,
     skill_edit: !!row.skill_edit,
@@ -42,15 +42,15 @@ export function usePhotographers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
-  const refresh = () => setTick(t => t + 1);
+  const refresh = () => setTick((t) => t + 1);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data, error: err } = await supabase
-        .from("photographers")
-        .select("*")
-        .order("id", { ascending: true });
+        .from('photographers')
+        .select('*')
+        .order('id', { ascending: true });
       if (cancelled) return;
       if (err) {
         setError(err.message);
@@ -65,15 +65,18 @@ export function usePhotographers() {
         const need = list.filter(
           (p) =>
             p.user_id &&
-            (!(p.rental_boards && p.rental_boards.length) && !(p.rental_pins && p.rental_pins.length))
+            !(p.rental_boards && p.rental_boards.length) &&
+            !(p.rental_pins && p.rental_pins.length),
         );
         if (need.length > 0) {
           const ids = need.map((p) => p.user_id!).filter(Boolean);
           const { data: apps } = await supabase
-            .from("photographer_applications")
-            .select("user_id, rental_boards, rental_pins, price_groups, skill_rental, boards, standalone_pins")
-            .eq("status", "approved")
-            .in("user_id", ids);
+            .from('photographer_applications')
+            .select(
+              'user_id, rental_boards, rental_pins, price_groups, skill_rental, boards, standalone_pins',
+            )
+            .eq('status', 'approved')
+            .in('user_id', ids);
           if (apps?.length) {
             const byUser = new Map(apps.map((a: any) => [a.user_id, a]));
             list = list.map((p) => {
@@ -82,15 +85,18 @@ export function usePhotographers() {
               const rb = asBoards(a.rental_boards);
               const rp = asPinUrls(a.rental_pins);
               let pg = a.price_groups;
-              if (typeof pg === "string") {
-                try { pg = JSON.parse(pg); } catch { pg = null; }
+              if (typeof pg === 'string') {
+                try {
+                  pg = JSON.parse(pg);
+                } catch {
+                  pg = null;
+                }
               }
               return {
                 ...p,
                 rental_boards: rb.length ? rb : p.rental_boards,
                 rental_pins: rp.length ? rp : p.rental_pins,
-                price_groups:
-                  Array.isArray(pg) && pg.length ? pg : p.price_groups,
+                price_groups: Array.isArray(pg) && pg.length ? pg : p.price_groups,
                 skill_rental: a.skill_rental ?? p.skill_rental,
                 boards: asBoards(a.boards).length ? asBoards(a.boards) : p.boards,
                 standalone_pins: asPinUrls(a.standalone_pins).length
@@ -101,12 +107,12 @@ export function usePhotographers() {
           }
         }
       } catch (e) {
-        console.warn("[usePhotographers] merge applications", e);
+        console.warn('[usePhotographers] merge applications', e);
       }
 
       // Số liệu thật: dùng CÙNG nguồn (RPC) với trang hồ sơ để thẻ ngoài và hồ sơ luôn khớp
       try {
-        const { data: stats, error: statsErr } = await supabase.rpc("get_photographers_stats");
+        const { data: stats, error: statsErr } = await supabase.rpc('get_photographers_stats');
         if (statsErr) throw statsErr;
         if (Array.isArray(stats) && stats.length) {
           const byId = new Map<number, any>(stats.map((s: any) => [Number(s.photographer_id), s]));
@@ -123,12 +129,15 @@ export function usePhotographers() {
           });
         }
       } catch (e) {
-        console.warn("[usePhotographers] get_photographers_stats (đã chạy SQL 031 chưa?)", e);
+        console.warn('[usePhotographers] get_photographers_stats (đã chạy SQL 031 chưa?)', e);
       }
 
       // Ẩn photographer đã bị admin ban khỏi marketplace
       try {
-        const { data: banned } = await supabase.from("profiles").select("id").not("banned_at", "is", null);
+        const { data: banned } = await supabase
+          .from('profiles')
+          .select('id')
+          .not('banned_at', 'is', null);
         const bannedIds = new Set((banned ?? []).map((b: { id: string }) => b.id));
         if (bannedIds.size) list = list.filter((p) => !p.user_id || !bannedIds.has(p.user_id));
       } catch {
@@ -137,7 +146,10 @@ export function usePhotographers() {
 
       // Ẩn photographer đã xóa tài khoản (hồ sơ còn lại chỉ để các đơn cũ không lỗi)
       try {
-        const { data: removed } = await supabase.from("profiles").select("id").not("deleted_at", "is", null);
+        const { data: removed } = await supabase
+          .from('profiles')
+          .select('id')
+          .not('deleted_at', 'is', null);
         const removedIds = new Set((removed ?? []).map((b: { id: string }) => b.id));
         if (removedIds.size) list = list.filter((p) => !p.user_id || !removedIds.has(p.user_id));
       } catch {
@@ -146,7 +158,7 @@ export function usePhotographers() {
 
       // Ẩn tài khoản admin khỏi trang chủ / Khám phá / tìm kiếm (admin có hồ sơ photographer để test)
       try {
-        const { data: admins } = await supabase.from("profiles").select("id").eq("role", "admin");
+        const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin');
         const adminIds = new Set((admins ?? []).map((a: { id: string }) => a.id));
         if (adminIds.size) list = list.filter((p) => !p.user_id || !adminIds.has(p.user_id));
       } catch {

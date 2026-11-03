@@ -1,26 +1,222 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Text } from 'react-native';
 import * as R from '../lib/photoRequests';
 import * as O from '../lib/requestOffers';
 import { formatVnd } from '../lib/bookings';
 import { Body, Button, Card, ErrorText, Field, Page, Title, check, s } from '../ui';
 
-export function Requests({ userId, create, open, mine = false }: { userId: string; create: () => void; open: (r: R.PhotoRequest) => void; mine?: boolean }) {
-  const [rows, setRows] = useState<R.PhotoRequest[]>([]); const [page, setPage] = useState(0); const [hasMore, setHasMore] = useState(false); const [error, setError] = useState<string | null>(null);
-  async function load(next = 0) { try { const r = mine ? await R.fetchMyPhotoRequests(userId, next) : await R.fetchPhotoRequests(R.EMPTY_REQUEST_FILTER, next); if ('error' in r) check(r.error); setRows(previous => next ? [...previous, ...r.rows] : r.rows); setPage(next); setHasMore(r.hasMore); setError(null); } catch (e) { setError(e instanceof Error ? e.message : 'Không tải được bảng tin.'); } }
-  useEffect(() => { void load(); }, [mine, userId]);
-  return <Page><Title>{mine ? 'Đơn của tôi' : 'Tìm nhiếp ảnh gia'}</Title><Button title="Đăng yêu cầu chụp ảnh" onPress={create} /><ErrorText error={error} />{rows.map(r => <Card key={r.id}><Text style={s.heading}>{r.title}</Text><Body>{R.formatPlace(r)}</Body><Body>{R.formatBudget(r.budget_min, r.budget_max)} · {R.STATUS_LABEL[r.status]}</Body><Body muted>{R.formatShootRange(r)}</Body><Button secondary title="Xem chi tiết" onPress={() => open(r)} /></Card>)}{!rows.length && !error && <Body muted>Chưa có yêu cầu chụp ảnh.</Body>}{hasMore && <Button secondary title="Tải thêm" onPress={() => load(page + 1)} />}<Button secondary title="Tải lại" onPress={() => load()} /></Page>;
+export function Requests({
+  userId,
+  create,
+  open,
+  mine = false,
+}: {
+  userId: string;
+  create: () => void;
+  open: (r: R.PhotoRequest) => void;
+  mine?: boolean;
+}) {
+  const [rows, setRows] = useState<R.PhotoRequest[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function load(next = 0) {
+    try {
+      const r = mine
+        ? await R.fetchMyPhotoRequests(userId, next)
+        : await R.fetchPhotoRequests(R.EMPTY_REQUEST_FILTER, next);
+      setRows((previous) => (next ? [...previous, ...r.rows] : r.rows));
+      setPage(next);
+      setHasMore(r.hasMore);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không tải được bảng tin.');
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, [mine, userId]);
+  return (
+    <Page>
+      <Title>{mine ? 'Đơn của tôi' : 'Tìm nhiếp ảnh gia'}</Title>
+      <Button title="Đăng yêu cầu chụp ảnh" onPress={create} />
+      <ErrorText error={error} />
+      {rows.map((r) => (
+        <Card key={r.id}>
+          <Text style={s.heading}>{r.title}</Text>
+          <Body>{R.formatPlace(r)}</Body>
+          <Body>
+            {R.formatBudget(r.budget_min, r.budget_max)} · {R.STATUS_LABEL[r.status]}
+          </Body>
+          <Body muted>{R.formatShootRange(r)}</Body>
+          <Button secondary title="Xem chi tiết" onPress={() => open(r)} />
+        </Card>
+      ))}
+      {!rows.length && !error && <Body muted>Chưa có yêu cầu chụp ảnh.</Body>}
+      {hasMore && <Button secondary title="Tải thêm" onPress={() => load(page + 1)} />}
+      <Button secondary title="Tải lại" onPress={() => load()} />
+    </Page>
+  );
 }
 export function CreateRequest({ name, done }: { name: string; done: () => void }) {
-  const [genre, setGenre] = useState(''); const [city, setCity] = useState(''); const [venue, setVenue] = useState(''); const [start, setStart] = useState(''); const [end, setEnd] = useState(''); const [min, setMin] = useState(''); const [max, setMax] = useState(''); const [note, setNote] = useState('');
-  return <Page><Title>Đăng yêu cầu chụp ảnh</Title><Field label="Thể loại chụp" value={genre} onChangeText={setGenre} placeholder="Couple, Wedding..." /><Field label="Tỉnh / thành phố" value={city} onChangeText={setCity} /><Field label="Địa điểm cụ thể" value={venue} onChangeText={setVenue} /><Field label="Bắt đầu (YYYY-MM-DD HH:mm)" value={start} onChangeText={setStart} /><Field label="Kết thúc (YYYY-MM-DD HH:mm)" value={end} onChangeText={setEnd} /><Field label="Ngân sách từ (đ)" value={min} onChangeText={setMin} keyboardType="numeric" /><Field label="Ngân sách đến (đ)" value={max} onChangeText={setMax} keyboardType="numeric" /><Field label="Ghi chú" value={note} onChangeText={setNote} multiline /><Button title="Đăng yêu cầu" onPress={async () => { const from = new Date(start.replace(' ', 'T')); const to = new Date(end.replace(' ', 'T')); if (!genre.trim() || !city.trim() || !Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from.getTime() <= Date.now() || to <= from || !min || !max || Number(min) <= 0 || Number(max) < Number(min)) throw new Error('Nhập đủ thể loại, địa điểm, thời gian ở tương lai và ngân sách hợp lệ.'); const r = await R.createPhotoRequest({ genres: genre.split(',').map(x => x.trim()).filter(Boolean), shootStart: from, shootEnd: to, city: city.trim(), venue, budgetMin: Number(min), budgetMax: Number(max), extraServices: [], setting: 'outdoor', note }, name); check(r.error); done(); }} /></Page>;
+  const [genre, setGenre] = useState('');
+  const [city, setCity] = useState('');
+  const [venue, setVenue] = useState('');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [min, setMin] = useState('');
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState('');
+  return (
+    <Page>
+      <Title>Đăng yêu cầu chụp ảnh</Title>
+      <Field
+        label="Thể loại chụp"
+        value={genre}
+        onChangeText={setGenre}
+        placeholder="Couple, Wedding..."
+      />
+      <Field label="Tỉnh / thành phố" value={city} onChangeText={setCity} />
+      <Field label="Địa điểm cụ thể" value={venue} onChangeText={setVenue} />
+      <Field label="Bắt đầu (YYYY-MM-DD HH:mm)" value={start} onChangeText={setStart} />
+      <Field label="Kết thúc (YYYY-MM-DD HH:mm)" value={end} onChangeText={setEnd} />
+      <Field label="Ngân sách từ (đ)" value={min} onChangeText={setMin} keyboardType="numeric" />
+      <Field label="Ngân sách đến (đ)" value={max} onChangeText={setMax} keyboardType="numeric" />
+      <Field label="Ghi chú" value={note} onChangeText={setNote} multiline />
+      <Button
+        title="Đăng yêu cầu"
+        onPress={async () => {
+          const from = new Date(start.replace(' ', 'T'));
+          const to = new Date(end.replace(' ', 'T'));
+          if (
+            !genre.trim() ||
+            !city.trim() ||
+            !Number.isFinite(from.getTime()) ||
+            !Number.isFinite(to.getTime()) ||
+            from.getTime() <= Date.now() ||
+            to <= from ||
+            !min ||
+            !max ||
+            Number(min) <= 0 ||
+            Number(max) < Number(min)
+          )
+            throw new Error(
+              'Nhập đủ thể loại, địa điểm, thời gian ở tương lai và ngân sách hợp lệ.',
+            );
+          const r = await R.createPhotoRequest(
+            {
+              genres: genre
+                .split(',')
+                .map((x) => x.trim())
+                .filter(Boolean),
+              shootStart: from,
+              shootEnd: to,
+              city: city.trim(),
+              venue,
+              budgetMin: Number(min),
+              budgetMax: Number(max),
+              extraServices: [],
+              setting: 'outdoor',
+              note,
+            },
+            name,
+          );
+          check(r.error);
+          done();
+        }}
+      />
+    </Page>
+  );
 }
-export function RequestDetail({ request: r, userId, photographer, done }: { request: R.PhotoRequest; userId: string; photographer: boolean; done: () => void }) {
-  const mine = r.requester_id === userId; const [offers, setOffers] = useState<O.RequestOffer[]>([]); const [price, setPrice] = useState(''); const [message, setMessage] = useState(''); const [error, setError] = useState<string | null>(null);
-  const load = async () => { if (mine) { const result = await O.fetchRequestOffers(r.id); setOffers(result.rows); setError(result.error); } };
-  useEffect(() => { void load(); }, [r.id]);
-  return <Page><Title>{r.title}</Title><Body>{R.formatPlace(r)}</Body><Body>{R.formatShootRange(r)}</Body><Body>{R.formatBudget(r.budget_min, r.budget_max)}</Body><Body>{r.note}</Body><ErrorText error={error} />
-    {mine && offers.map(o => <Card key={o.offer_id}><Text style={s.heading}>{o.name}</Text><Body>{formatVnd(o.price)} · {O.OFFER_STATUS_LABEL[o.status]}</Body><Body>{o.message}</Body>{o.status === 'pending' && r.status === 'open' && <Button title="Chọn nhiếp ảnh gia này" onPress={async () => { const result = await O.chooseOffer(o.offer_id); check(result.error); Alert.alert('Đã chọn nhiếp ảnh gia', 'Lịch hẹn đã được tạo.'); done(); }} />}</Card>)}
-    {!mine && photographer && r.status === 'open' && <Card><Field label="Giá đề nghị (đ)" value={price} onChangeText={setPrice} keyboardType="numeric" /><Field label="Lời nhắn" value={message} onChangeText={setMessage} multiline maxLength={500} /><Button title="Gửi đề nghị nhận đơn" onPress={async () => { if (!Number.isFinite(Number(price)) || Number(price) <= 0) throw new Error('Nhập giá đề nghị hợp lệ.'); check(await O.submitOffer(r.id, Number(price), message)); Alert.alert('Đã gửi đề nghị'); }} /><Button secondary title="Rút đề nghị của tôi" onPress={async () => { check(await O.withdrawOffer(r.id)); Alert.alert('Đã rút đề nghị'); }} /></Card>}
-  </Page>;
+export function RequestDetail({
+  request: r,
+  userId,
+  photographer,
+  done,
+}: {
+  request: R.PhotoRequest;
+  userId: string;
+  photographer: boolean;
+  done: () => void;
+}) {
+  const mine = r.requester_id === userId;
+  const [offers, setOffers] = useState<O.RequestOffer[]>([]);
+  const [price, setPrice] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const load = async () => {
+    if (mine) {
+      const result = await O.fetchRequestOffers(r.id);
+      setOffers(result.rows);
+      setError(result.error);
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, [r.id]);
+  return (
+    <Page>
+      <Title>{r.title}</Title>
+      <Body>{R.formatPlace(r)}</Body>
+      <Body>{R.formatShootRange(r)}</Body>
+      <Body>{R.formatBudget(r.budget_min, r.budget_max)}</Body>
+      <Body>{r.note}</Body>
+      <ErrorText error={error} />
+      {mine &&
+        offers.map((o) => (
+          <Card key={o.offer_id}>
+            <Text style={s.heading}>{o.name}</Text>
+            <Body>
+              {formatVnd(o.price)} · {O.OFFER_STATUS_LABEL[o.status]}
+            </Body>
+            <Body>{o.message}</Body>
+            {o.status === 'pending' && r.status === 'open' && (
+              <Button
+                title="Chọn nhiếp ảnh gia này"
+                onPress={async () => {
+                  const result = await O.chooseOffer(o.offer_id);
+                  check(result.error);
+                  Alert.alert('Đã chọn nhiếp ảnh gia', 'Lịch hẹn đã được tạo.');
+                  done();
+                }}
+              />
+            )}
+          </Card>
+        ))}
+      {!mine && photographer && r.status === 'open' && (
+        <Card>
+          <Field
+            label="Giá đề nghị (đ)"
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="numeric"
+          />
+          <Field
+            label="Lời nhắn"
+            value={message}
+            onChangeText={setMessage}
+            multiline
+            maxLength={500}
+          />
+          <Button
+            title="Gửi đề nghị nhận đơn"
+            onPress={async () => {
+              if (!Number.isFinite(Number(price)) || Number(price) <= 0)
+                throw new Error('Nhập giá đề nghị hợp lệ.');
+              check(await O.submitOffer(r.id, Number(price), message));
+              Alert.alert('Đã gửi đề nghị');
+            }}
+          />
+          <Button
+            secondary
+            title="Rút đề nghị của tôi"
+            onPress={async () => {
+              check(await O.withdrawOffer(r.id));
+              Alert.alert('Đã rút đề nghị');
+            }}
+          />
+        </Card>
+      )}
+    </Page>
+  );
 }

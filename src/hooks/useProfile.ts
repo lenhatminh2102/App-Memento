@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "../lib/supabase";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 
 export type Profile = {
   id: string;
@@ -9,8 +9,8 @@ export type Profile = {
   avatar_url: string | null;
   phone: string | null;
   phone_verified: boolean;
-  gender: "female" | "male" | "other" | null;
-  role: "customer" | "photographer" | "admin";
+  gender: 'female' | 'male' | 'other' | null;
+  role: 'customer' | 'photographer' | 'admin';
   onboarding_completed: boolean;
   /** Có giá trị = tài khoản đã bị admin ban */
   banned_at?: string | null;
@@ -31,9 +31,9 @@ export function useProfile(userId: string | null | undefined) {
 
   const load = useCallback(async (uid: string, attempt: number, gen: number) => {
     const { data, error: err } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", uid)
+      .from('profiles')
+      .select('*')
+      .eq('id', uid)
       .maybeSingle();
 
     // Bỏ qua response cũ nếu userId đã đổi

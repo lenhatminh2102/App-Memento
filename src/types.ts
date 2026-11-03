@@ -1,11 +1,29 @@
 export type Screen =
-  | "login" | "home" | "search" | "photographer-profile"
-  | "write-review" | "reviews-list" | "booking" | "bookings"
-  | "messages" | "chat" | "profile" | "personal-info"
-  | "privacy" | "become-photographer" | "booking-confirm" | "contact-us"
-  | "notifications" | "change-email" | "change-password"
-  | "admin-review" | "edit-photographer" | "create-request" | "my-requests" | "offer-chat"
-  | "delete-account";
+  | 'login'
+  | 'home'
+  | 'search'
+  | 'photographer-profile'
+  | 'write-review'
+  | 'reviews-list'
+  | 'booking'
+  | 'bookings'
+  | 'messages'
+  | 'chat'
+  | 'profile'
+  | 'personal-info'
+  | 'privacy'
+  | 'become-photographer'
+  | 'booking-confirm'
+  | 'contact-us'
+  | 'notifications'
+  | 'change-email'
+  | 'change-password'
+  | 'admin-review'
+  | 'edit-photographer'
+  | 'create-request'
+  | 'my-requests'
+  | 'offer-chat'
+  | 'delete-account';
 
 export type Board = {
   id: string;
@@ -35,13 +53,20 @@ export type Photographer = {
   pin_likes: Record<string, number>;
   bio: string;
   tags: string[];
-  reviews: { name: string; avatar: string; rating: number; text: string; time: string; verified: boolean }[];
+  reviews: {
+    name: string;
+    avatar: string;
+    rating: number;
+    text: string;
+    time: string;
+    verified: boolean;
+  }[];
   packages: { name: string; price: number; desc: string; includes: string[] }[];
   /** Optional fields filled during "Trở thành Nhiếp ảnh gia" — shown in profile like PotoNow */
   experience_years?: string | null;
   equipment?: string | null;
   languages?: string[];
-  work_model?: "solo" | "team" | string | null;
+  work_model?: 'solo' | 'team' | string | null;
   experience_detail?: string | null;
   shooting_styles?: string[];
   work_locations?: string[];
@@ -49,7 +74,7 @@ export type Photographer = {
   price_groups?: {
     id: string;
     title: string;
-    category: "photo" | "makeup" | "editor" | "rental" | string;
+    category: 'photo' | 'makeup' | 'editor' | 'rental' | string;
     lines: { id: string; name: string; price: string; detail: string }[];
   }[];
   skill_makeup?: boolean;

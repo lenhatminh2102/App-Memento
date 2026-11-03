@@ -2,6 +2,21 @@
 
 Source chính của app nằm ngay trong thư mục `Non_F`. Ứng dụng viết bằng TypeScript, React Native và Expo; giao diện dùng native components, không nhúng bản web bằng WebView. Mã React/Vite/Capacitor cũ được giữ tại `legacy/web` để đối chiếu khi chuyển đổi.
 
+## Cấu trúc để bảo trì
+
+| Thư mục / file       | Trách nhiệm                                            |
+| -------------------- | ------------------------------------------------------ |
+| `src/App.tsx`        | Khởi tạo app, điều kiện đăng nhập và khung màn hình    |
+| `src/navigation/`    | Route có kiểu dữ liệu và ánh xạ route → màn hình       |
+| `src/hooks/`         | Vòng đời phiên đăng nhập, điều hướng, profile và push  |
+| `src/screens/`       | Giao diện theo chức năng                               |
+| `src/lib/`           | Supabase, nghiệp vụ và xác thực CAPTCHA                |
+| `config/android.cjs` | Một nơi cấu hình SDK, Build Tools, NDK, ABI và tên APK |
+| `scripts/`           | Cài SDK, build, xác minh chữ ký và kiểm thử            |
+| `legacy/web/`        | Bản web cũ và ghi chú sửa lỗi cũ, giữ để tra cứu       |
+
+Không sửa trực tiếp thư mục `android/` sinh tự động. Thay đổi cấu hình Expo hoặc `plugins/` rồi prebuild lại. Khi nâng Expo/React Native, cập nhật `config/android.cjs` theo SDK tương ứng; CI và công cụ xác minh APK cùng đọc file này.
+
 ## Chạy Android
 
 ```powershell
@@ -10,7 +25,7 @@ npm install
 npm run android
 ```
 
-Cần Android Studio, JDK 17 và máy ảo Android đang chạy hoặc điện thoại bật USB debugging. `npm run android` build và cài app development. Những lần sau dùng `npm start` để mở Metro rồi chạy app đã cài. Bản APK release chứa JavaScript và Hermes bytecode nên không cần Metro hay localhost khi sử dụng.
+Cần Android Studio, JDK 17 và máy ảo Android đang chạy hoặc điện thoại bật USB debugging. `npm run android` build và cài app development. Những lần sau dùng `npm start` để mở Metro cho development client rồi chạy app đã cài. Có thể mở Expo Go bằng `npm run start:go` khi client hỗ trợ SDK của dự án. Bản APK release chứa JavaScript và Hermes bytecode nên không cần Metro hay localhost khi sử dụng.
 
 ## Tải APK từ GitHub
 
@@ -26,15 +41,15 @@ Link tải chỉ hoạt động sau khi workflow đầu tiên thành công. Mỗ
 
 Cấu hình tại Settings → Secrets and variables → Actions:
 
-| Secret | Nội dung |
-| --- | --- |
-| `EXPO_PUBLIC_SUPABASE_URL` | URL dự án Supabase |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon/public key, không phải service-role key |
-| `GOOGLE_SERVICES_JSON` | Nội dung cấu hình Firebase Android tương ứng package ID |
-| `ANDROID_KEYSTORE_BASE64` | Keystore ký release mã hóa Base64 |
-| `ANDROID_KEYSTORE_PASSWORD` | Mật khẩu keystore |
-| `ANDROID_KEY_ALIAS` | Alias khóa ký |
-| `ANDROID_KEY_PASSWORD` | Mật khẩu khóa ký |
+| Secret                          | Nội dung                                                |
+| ------------------------------- | ------------------------------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`      | URL dự án Supabase                                      |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon/public key, không phải service-role key            |
+| `GOOGLE_SERVICES_JSON`          | Nội dung cấu hình Firebase Android tương ứng package ID |
+| `ANDROID_KEYSTORE_BASE64`       | Keystore ký release mã hóa Base64                       |
+| `ANDROID_KEYSTORE_PASSWORD`     | Mật khẩu keystore                                       |
+| `ANDROID_KEY_ALIAS`             | Alias khóa ký                                           |
+| `ANDROID_KEY_PASSWORD`          | Mật khẩu khóa ký                                        |
 
 Khóa ký phải được giữ ổn định để các APK sau cài cập nhật được lên bản trước. Bản sao lưu khóa và mật khẩu được giữ tại `.ci-local` trên máy đã cấu hình; thư mục này bị Git ignore. Không commit `.env`, `google-services.json`, keystore hoặc mật khẩu vào repo. Các giá trị Supabase public được đóng gói trong ứng dụng theo thiết kế; quyền dữ liệu phải được backend bảo vệ bằng RLS.
 
@@ -47,6 +62,10 @@ npm run bundle:android
 npm run apk
 ```
 
+Lệnh kiểm tra chung: `npm run validate` (TypeScript, định dạng và unit test). Dùng `npm run format` để định dạng lại code. Kiểm tra import/biến không sử dụng được bật trong `tsconfig.json`; CI cũng kiểm tra định dạng để tránh code lại bị dồn thành các dòng khó đọc.
+
+Nếu máy thiếu gói SDK và đã có `sdkmanager` trong PATH, chạy `npm run android:sdk` một lần. Build bằng `npm run apk`; script tạo cả `build/memento.apk` và `build/memento.apk.sha256`. Với đầy đủ biến khóa ký release, chạy thêm `npm run apk:verify` để xác nhận APK dùng đúng chứng chỉ. CI thực hiện cả build lẫn xác minh tự động.
+
 APK nằm tại `build/memento.apk`. Nếu build không có cấu hình `MEMENTO_KEYSTORE_FILE`, template Expo sử dụng khóa debug; workflow CI đã cấu hình khóa release riêng. `MEMENTO_KEYSTORE_FILE`, `MEMENTO_KEYSTORE_PASSWORD`, `MEMENTO_KEY_ALIAS`, `MEMENTO_KEY_PASSWORD` điều khiển ký release. Biến `MEMENTO_ANDROID_NDK_VERSION` cho phép chọn NDK cài sẵn nếu cần.
 
 Copy `.env.example` thành `.env` và điền hai cấu hình Supabase public để chạy local. Thêm `google-services.json` ở thư mục gốc để bật FCM Android. Phiên đăng nhập dùng AsyncStorage; ảnh dùng camera/thư viện native; app dùng lại database và RPC hiện có.
@@ -55,7 +74,7 @@ Copy `.env.example` thành `.env` và điền hai cấu hình Supabase public đ
 
 App dùng lại site key hCaptcha public của bản gốc. Có thể cấu hình bằng EXPO_PUBLIC_HCAPTCHA_SITE_KEY; không đưa secret key hCaptcha vào app. Supabase phải bật CAPTCHA với nhà cung cấp hCaptcha và secret khớp site key này.
 
-Web dùng widget chính thức @hcaptcha/react-hcaptcha. Bản xem thử tự chuyển localhost:8081 sang memento.localhost:8081 vì hCaptcha không hỗ trợ hostname localhost/127.0.0.1. Tên miền *.localhost vẫn trỏ về máy đang chạy Expo, không cần sửa file hosts.
+Web dùng widget chính thức @hcaptcha/react-hcaptcha. Bản xem thử tự chuyển localhost:8081 sang memento.localhost:8081 vì hCaptcha không hỗ trợ hostname localhost/127.0.0.1. Tên miền \*.localhost vẫn trỏ về máy đang chạy Expo, không cần sửa file hosts.
 
 Android/iOS dùng SDK @hcaptcha/react-native-hcaptcha trong cửa sổ xác minh riêng. WebView chỉ phục vụ thử thách CAPTCHA; giao diện ứng dụng vẫn dùng React Native.
 

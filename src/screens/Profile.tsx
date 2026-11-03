@@ -1,5 +1,6 @@
+import type { ProfileDestination } from '../navigation/routes';
 import { verifyMyPassword } from '../lib/verifyPassword';
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Text } from 'react-native';
 import type { Profile } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
@@ -7,14 +8,142 @@ import { pickAndUpload } from '../lib/images';
 import { signOutSafely } from '../lib/push';
 import { Body, Button, Card, Field, Page, Picture, Title, check, s } from '../ui';
 
-export function ProfileMenu({ profile, email, go }: { profile: Profile | null; email: string; go: (route: string) => void }) {
-  return <Page><Title>Hồ sơ</Title><Card><Picture avatar uri={profile?.avatar_url} /><Text style={s.heading}>{profile?.full_name || profile?.username || 'Memento'}</Text><Body muted>{email}</Body></Card>{profile?.role === 'admin' && <Button secondary title="Duyệt hồ sơ nhiếp ảnh gia" onPress={() => go('admin')} />}<Button secondary title="Thông tin cá nhân" onPress={() => go('personal')} /><Button secondary title="Yêu cầu chụp ảnh của tôi" onPress={() => go('my-requests')} /><Button secondary title="Đăng ký / hồ sơ nhiếp ảnh gia" onPress={() => go('application')} /><Button secondary title="Thông báo" onPress={() => go('notifications')} /><Button secondary title="Đổi mật khẩu" onPress={() => go('password')} /><Button secondary title="Đổi email" onPress={() => go('email')} /><Button secondary title="Xóa tài khoản" onPress={() => go('delete')} /><Button title="Đăng xuất" onPress={signOutSafely} /></Page>;
+export function ProfileMenu({
+  profile,
+  email,
+  go,
+}: {
+  profile: Profile | null;
+  email: string;
+  go: (route: ProfileDestination) => void;
+}) {
+  return (
+    <Page>
+      <Title>Hồ sơ</Title>
+      <Card>
+        <Picture avatar uri={profile?.avatar_url} />
+        <Text style={s.heading}>{profile?.full_name || profile?.username || 'Memento'}</Text>
+        <Body muted>{email}</Body>
+      </Card>
+      {profile?.role === 'admin' && (
+        <Button secondary title="Duyệt hồ sơ nhiếp ảnh gia" onPress={() => go('admin')} />
+      )}
+      <Button secondary title="Thông tin cá nhân" onPress={() => go('personal')} />
+      <Button secondary title="Yêu cầu chụp ảnh của tôi" onPress={() => go('my-requests')} />
+      <Button secondary title="Đăng ký / hồ sơ nhiếp ảnh gia" onPress={() => go('application')} />
+      <Button secondary title="Thông báo" onPress={() => go('notifications')} />
+      <Button secondary title="Đổi mật khẩu" onPress={() => go('password')} />
+      <Button secondary title="Đổi email" onPress={() => go('email')} />
+      <Button secondary title="Xóa tài khoản" onPress={() => go('delete')} />
+      <Button title="Đăng xuất" onPress={signOutSafely} />
+    </Page>
+  );
 }
-export function PersonalInfo({ profile, userId, done, onboarding = false }: { profile: Profile | null; userId: string; done: () => void; onboarding?: boolean }) {
-  const [name, setName] = useState(profile?.full_name || ''); const [username, setUsername] = useState(profile?.username || ''); const [phone, setPhone] = useState(profile?.phone || ''); const [avatar, setAvatar] = useState(profile?.avatar_url || '');
-  return <Page><Title>{onboarding ? 'Hoàn thiện tài khoản' : 'Thông tin cá nhân'}</Title><Picture avatar uri={avatar} /><Button secondary title="Chọn ảnh đại diện" onPress={async () => { const uri = await pickAndUpload(userId); if (uri) setAvatar(uri); }} /><Button secondary title="Chụp ảnh đại diện" onPress={async () => { const uri = await pickAndUpload(userId, 'avatars', true); if (uri) setAvatar(uri); }} /><Field label="Tên đăng nhập" value={username} onChangeText={setUsername} autoCapitalize="none" /><Field label="Họ và tên" value={name} onChangeText={setName} /><Field label="Số điện thoại" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><Button title="Lưu thông tin" onPress={async () => { if (!name.trim() || !username.trim()) throw new Error('Nhập tên đăng nhập và họ tên.'); if (username !== profile?.username) { const { data, error } = await supabase.rpc('claim_username', { p_username: username.trim() }); check(error?.message); if (!data) throw new Error('Tên đăng nhập đã được sử dụng.'); } const { error } = await supabase.from('profiles').update({ full_name: name.trim(), phone: phone.trim() || null, avatar_url: avatar || null, onboarding_completed: true }).eq('id', userId); check(error?.message); done(); }} /></Page>;
+export function PersonalInfo({
+  profile,
+  userId,
+  done,
+  onboarding = false,
+}: {
+  profile: Profile | null;
+  userId: string;
+  done: () => void;
+  onboarding?: boolean;
+}) {
+  const [name, setName] = useState(profile?.full_name || '');
+  const [username, setUsername] = useState(profile?.username || '');
+  const [phone, setPhone] = useState(profile?.phone || '');
+  const [avatar, setAvatar] = useState(profile?.avatar_url || '');
+  return (
+    <Page>
+      <Title>{onboarding ? 'Hoàn thiện tài khoản' : 'Thông tin cá nhân'}</Title>
+      <Picture avatar uri={avatar} />
+      <Button
+        secondary
+        title="Chọn ảnh đại diện"
+        onPress={async () => {
+          const uri = await pickAndUpload(userId);
+          if (uri) setAvatar(uri);
+        }}
+      />
+      <Button
+        secondary
+        title="Chụp ảnh đại diện"
+        onPress={async () => {
+          const uri = await pickAndUpload(userId, 'avatars', true);
+          if (uri) setAvatar(uri);
+        }}
+      />
+      <Field
+        label="Tên đăng nhập"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+      />
+      <Field label="Họ và tên" value={name} onChangeText={setName} />
+      <Field label="Số điện thoại" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <Button
+        title="Lưu thông tin"
+        onPress={async () => {
+          if (!name.trim() || !username.trim()) throw new Error('Nhập tên đăng nhập và họ tên.');
+          if (username !== profile?.username) {
+            const { data, error } = await supabase.rpc('claim_username', {
+              p_username: username.trim(),
+            });
+            check(error?.message);
+            if (!data) throw new Error('Tên đăng nhập đã được sử dụng.');
+          }
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              full_name: name.trim(),
+              phone: phone.trim() || null,
+              avatar_url: avatar || null,
+              onboarding_completed: true,
+            })
+            .eq('id', userId);
+          check(error?.message);
+          done();
+        }}
+      />
+    </Page>
+  );
 }
 export function ChangePassword() {
-  const [current, setCurrent] = useState(''); const [password, setPassword] = useState(''); const [confirm, setConfirm] = useState('');
-  return <Page><Title>Đổi mật khẩu</Title><Field label="Mật khẩu hiện tại" value={current} onChangeText={setCurrent} secureTextEntry /><Field label="Mật khẩu mới" value={password} onChangeText={setPassword} secureTextEntry /><Field label="Nhập lại mật khẩu mới" value={confirm} onChangeText={setConfirm} secureTextEntry /><Button title="Đổi mật khẩu" onPress={async () => { if (password.length < 8 || password !== confirm) throw new Error('Mật khẩu mới cần ít nhất 8 ký tự và hai lần nhập phải giống nhau.'); const verified = await verifyMyPassword(current); if (verified.result !== 'ok') throw new Error(verified.result === 'locked' ? 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.' : 'Mật khẩu hiện tại chưa đúng hoặc chưa xác minh được.'); const { error } = await supabase.auth.updateUser({ password }); check(error?.message); setCurrent(''); setPassword(''); setConfirm(''); Alert.alert('Đã đổi mật khẩu'); }} /></Page>;
+  const [current, setCurrent] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  return (
+    <Page>
+      <Title>Đổi mật khẩu</Title>
+      <Field label="Mật khẩu hiện tại" value={current} onChangeText={setCurrent} secureTextEntry />
+      <Field label="Mật khẩu mới" value={password} onChangeText={setPassword} secureTextEntry />
+      <Field
+        label="Nhập lại mật khẩu mới"
+        value={confirm}
+        onChangeText={setConfirm}
+        secureTextEntry
+      />
+      <Button
+        title="Đổi mật khẩu"
+        onPress={async () => {
+          if (password.length < 8 || password !== confirm)
+            throw new Error('Mật khẩu mới cần ít nhất 8 ký tự và hai lần nhập phải giống nhau.');
+          const verified = await verifyMyPassword(current);
+          if (verified.result !== 'ok')
+            throw new Error(
+              verified.result === 'locked'
+                ? 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.'
+                : 'Mật khẩu hiện tại chưa đúng hoặc chưa xác minh được.',
+            );
+          const { error } = await supabase.auth.updateUser({ password });
+          check(error?.message);
+          setCurrent('');
+          setPassword('');
+          setConfirm('');
+          Alert.alert('Đã đổi mật khẩu');
+        }}
+      />
+    </Page>
+  );
 }

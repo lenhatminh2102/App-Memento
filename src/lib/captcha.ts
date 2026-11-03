@@ -1,5 +1,6 @@
 // Public site key restored from the original Memento hCaptcha integration.
-export const HCAPTCHA_SITE_KEY = process.env.EXPO_PUBLIC_HCAPTCHA_SITE_KEY || 'a4e4d806-e516-49a8-87b6-dc1e6d1c15f0';
+export const HCAPTCHA_SITE_KEY =
+  process.env.EXPO_PUBLIC_HCAPTCHA_SITE_KEY || 'a4e4d806-e516-49a8-87b6-dc1e6d1c15f0';
 
 export interface CaptchaHandle {
   getToken(): Promise<string>;
@@ -11,7 +12,10 @@ export function captchaOptions(token: string) {
   return { captchaToken: token };
 }
 
-export async function withCaptcha<T>(captcha: CaptchaHandle | null, action: (options: { captchaToken: string }) => Promise<T>): Promise<T> {
+export async function withCaptcha<T>(
+  captcha: CaptchaHandle | null,
+  action: (options: { captchaToken: string }) => Promise<T>,
+): Promise<T> {
   if (!captcha) throw new Error('Xác minh bảo mật chưa sẵn sàng. Vui lòng thử lại.');
   try {
     const token = await captcha.getToken();
